@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".MainPage">
+
+    <RelativeLayout
+        android:id="@+id/mp_top_bar"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:background="#FFFFff">
+
+    </RelativeLayout>
+
+
+    <RadioGroup
+        android:id="@+id/mp_tab_bar"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:layout_alignParentBottom="true"
+        android:background="@color/ma_bar_background"
+        android:orientation="horizontal">
+
+        <RadioButton
+            android:id="@+id/mp_books"
+            style="@style/tab_menu_item"
+            android:drawableTop="@drawable/books"
+            android:text="@string/books" />
+
+        <RadioButton
+            android:id="@+id/mp_notes"
+            style="@style/tab_menu_item"
+            android:drawableTop="@drawable/notes"
+            android:text="@string/notes" />
+
+        <RadioButton
+            android:id="@+id/mp_listen"
+            style="@style/tab_menu_item"
+            android:drawableTop="@drawable/listen"
+            android:text="@string/listen" />
+
+
+    </RadioGroup>
+
+    <View
+        android:id="@+id/div_tab_bar"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_above="@id/mp_tab_bar"
+        android:background="@color/white" />
+
+    <androidx.viewpager2.widget.ViewPager2
+        android:id="@+id/mp_viewpager"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_above="@id/div_tab_bar"
+        android:layout_below="@id/mp_top_bar">
+
+    </androidx.viewpager2.widget.ViewPager2>
+
+</RelativeLayout>

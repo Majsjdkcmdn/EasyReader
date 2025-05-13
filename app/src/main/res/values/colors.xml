@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="ma_bar_background">#E3FFFD</color>
+    <color name="book_list">#F1F4D8</color>
+</resources>

@@ -1,0 +1,13 @@
+<resources>
+    <string name="app_name">My Reader</string>
+    <string name="books">书架</string>
+    <string name="notes">笔记</string>
+    <string name="listen">听书</string>
+    <string name="books_toolbar_import">导入</string>
+    <string name="favorite">喜欢</string>
+    <string name="book_progress">阅读进度</string>
+    <string name="book_author">作者</string>
+    <string name="book_title">书名</string>
+    <string name="book_cover">封面</string>
+    <string name="delete">删除</string>
+</resources>
