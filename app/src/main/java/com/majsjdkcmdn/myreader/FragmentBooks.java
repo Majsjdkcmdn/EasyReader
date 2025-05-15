@@ -1,27 +1,21 @@
 package com.majsjdkcmdn.myreader;
 
-import static android.app.Activity.RESULT_OK;
-
-import android.Manifest;
-
 import android.app.Activity;
-import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.res.Resources;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
 
 import android.os.ParcelFileDescriptor;
 import android.provider.OpenableColumns;
-import android.text.TextUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
 import android.widget.ImageView;
-import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -37,28 +31,26 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.nio.channels.FileChannel;
-import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
-import java.util.Arrays;
+
 import java.util.List;
 import java.util.Objects;
 
-import pub.devrel.easypermissions.EasyPermissions;
 
-public class FragmentBooks1 extends Fragment {
+public class FragmentBooks extends Fragment {
     private static final int REQUEST_CODE_FILE_PICKER = 1;
     private Toolbar toolbar;
     private ImageView importIcon;
     private RecyclerView recyclerViewBooks;
     private BooksManager booksManager;
     private List<Book> bookList;
-
-
-
     private ActivityResultLauncher<Intent> filePickerLauncher;
+    Context context;
+    Resources res;
+    File booksDirectory;
+    File assetsDirectory;
+    File databaseDirectory;
+    String name;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -69,38 +61,33 @@ public class FragmentBooks1 extends Fragment {
                     if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
                         Uri fileUri = result.getData().getData();
                         copyFileToPrivateDirectory(fileUri);
+                        try {
+                            bookList = booksManager.renew(booksDirectory+"/"+name);
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                        booksManager.submitList(bookList);
                     }
                 }
         );
     }
 
-    public Boolean importBooks() {
+    public void importBooks() {
         try{
             Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
             intent.setType("*/*");
-            String[] mimetypes = {"application/epub","application/zip", "application/pdf", "application/ebe"};
+            String[] mimetypes = {"application/epub+zip", "application/pdf", "application/ebe"};
             intent.addCategory(Intent.CATEGORY_OPENABLE);
             intent.putExtra(Intent.EXTRA_MIME_TYPES, mimetypes);
-            filePickerLauncher.launch(intent);
-            return true;}
+            filePickerLauncher.launch(intent);}
         catch (Exception exception){
-            return false;
+            Log.e("error", "error");
         }
     }
 
     private void copyFileToPrivateDirectory(Uri fileUri) {
-        Context context = requireContext();
-        File privateDirectory = new File(context.getFilesDir(), "books");
-        if (!privateDirectory.exists()) {
-            privateDirectory.mkdirs();
-        }
-        File[] files = privateDirectory.listFiles();
-        assert files != null;
-        for(File file:files){
-            Log.v("filename", file.getName());
-            //TODO
-        }
-        File destinationFile = new File(privateDirectory, getFileName(fileUri));
+        File destinationFile = new File(booksDirectory, getFileName(fileUri));
+        Log.v("filename", destinationFile.getName());
         try (ParcelFileDescriptor inputPfd = context.getContentResolver().openFileDescriptor(fileUri, "r")) {
             assert inputPfd != null;
             try (FileChannel inputChannel = new FileInputStream(inputPfd.getFileDescriptor()).getChannel();
@@ -111,12 +98,12 @@ public class FragmentBooks1 extends Fragment {
         } catch (IOException e) {
             Log.e("error", "shibai");
         }
-        for(File file:files){
+        for(File file: Objects.requireNonNull(booksDirectory.listFiles())){
             Log.v("filename", file.getName());
             //TODO
         }
-    }
 
+    }
     private String getFileName(Uri uri) {
         String result = null;
         if (uri.getScheme().equals("content")) {
@@ -139,6 +126,7 @@ public class FragmentBooks1 extends Fragment {
                 result = result.substring(cut + 1);
             }
         }
+        name = result;
         return result;
     }
 
@@ -146,38 +134,95 @@ public class FragmentBooks1 extends Fragment {
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState)
         {
-            View view = inflater.inflate(R.layout.fragment_books1, container, false);
+            View view = inflater.inflate(R.layout.fragment_books, container, false);
+            context = requireContext();
+            res = getResources();
+            booksDirectory = new File(context.getFilesDir(), "books");
+            assetsDirectory = new File(context.getFilesDir(), "assets");
+            databaseDirectory = new File(context.getFilesDir(), "database");
+            if(!booksDirectory.exists()){
+                booksDirectory.mkdir();
+            }
+            if(!assetsDirectory.exists()){
+                assetsDirectory.mkdir();
+            }
+            if(!databaseDirectory.exists()){
+                databaseDirectory.mkdir();
+            }
+
+
+            File[] files = context.getFilesDir().listFiles();
+            assert files != null;
+            for(File file:files){
+                Log.v("filename", file.getName());
+            }
+
+            for(File file: Objects.requireNonNull(booksDirectory.listFiles())){
+                Log.v("filename", file.getName());
+                //file.delete();
+                //TODO
+            }
+
 
             toolbar = view.findViewById(R.id.books_toolbar);
             importIcon = view.findViewById(R.id.toolbar_import);
             recyclerViewBooks = view.findViewById(R.id.books_list_all);
             recyclerViewBooks.setLayoutManager(new LinearLayoutManager(getContext()));
 
-            booksManager = new BooksManager();
-            bookList = booksManager.getBooks();
+            try {
+                booksManager = new BooksManager(res, booksDirectory);
+            } catch (IOException e) {
+                try {
+                    booksManager = new BooksManager(res);
+                } catch (IOException ex) {
+                    throw new RuntimeException(ex);
+                }
+            }
+            bookList = booksManager.Book_list;
             recyclerViewBooks.setAdapter(booksManager);
+
             booksManager.setOnBookCoverClickListener(new BooksManager.OnBookCoverClickListener() {
                 @Override
                 public void onBookCoverClick(int position) {
+                    //TODO
                     //bookList.get(position).open();
-                    Log.v("good", String.valueOf(position));
+                    Log.v("pos", String.valueOf(position));
+                }
+            });
+            booksManager.setOnBookLikeClickListener(new BooksManager.OnBookLikeClickListener() {
+                @Override
+                public void onBookLikeClick(int position) {
+                    //TODO
+                    //
+                    Log.v("like", String.valueOf(position));
+                    bookList.get(position).Like = !bookList.get(position).Like;
+                    booksManager.notifyItemChanged(position);
+                }
+            });
+            booksManager.setOnBookDeleteClickListener(new BooksManager.OnBookDeleteClickListener() {
+                @Override
+                public void onBookDeleteClick(int position) {
+                    //TODO
+                    //bookList.get(position).open();
+                    Log.v("delete", String.valueOf(position));
+                    bookList = booksManager.deleteBook(position);
+                    booksManager.submitList(bookList);
                 }
             });
 
+            importIcon.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    //TODO
+                    importBooks();
+
+                }
+            });
             AppCompatActivity activity = (AppCompatActivity) getActivity();
             if (activity != null) {
                 activity.setSupportActionBar(toolbar);
                 Objects.requireNonNull(activity.getSupportActionBar()).setDisplayShowTitleEnabled(false);
             }
-
-            importIcon.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    if (importBooks()) {
-                        BooksManager.renew();
-                    }
-                }
-            });
 
         return view;
     }

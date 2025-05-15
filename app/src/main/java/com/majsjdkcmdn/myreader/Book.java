@@ -1,46 +1,64 @@
 package com.majsjdkcmdn.myreader;
 
+
+import static androidx.core.content.res.ResourcesCompat.getDrawable;
+
+import android.content.res.Resources;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
+import android.util.Log;
+
+import net.sf.jazzlib.ZipFile;
+
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.Random;
+import java.util.random.RandomGenerator;
 
-public class Book {
+
+import io.documentnode.epub4j.domain.Metadata;
+import io.documentnode.epub4j.domain.Resource;
+import io.documentnode.epub4j.epub.EpubReader;
+import io.documentnode.epub4j.domain.MediaType;
+import io.documentnode.epub4j.domain.MediaTypes;
+
+public class Book{
     //属性，待补充
-    public int Cover, Title, Author, Progress;
+    public int ID;
+    public Drawable Cover;
+    public String Title = "标题";
+    public double progress = 0;
+    public String Progress = progress +"%";
+    public String FileName = "";
+    public Boolean Like = false;
     //初始化
-    public Book(){
-        Cover = R.drawable.cover_default;
-        Title = R.string.book_title;
-        Author = R.string.book_author;
-        Progress = R.string.book_progress;
+    public Book(Resources res, int id){
+        ID = id;
+        Cover = getDrawable(res, R.drawable.cover_default,null);
     }
-    public Book(File file){
-
-    }
-
-    //先创建元素，再返回id
-    //获取封面id
-    public int getCover() {
-        return Cover;
-    }
-
-    //获取标题id
-    public int getTitle() {
-        return Title;
+    public Book(Resources res, int id, ZipFile zipFile) throws IOException {
+        //TODO
+        ID = id;
+        FileName = zipFile.getName();
+        EpubReader epubReader = new EpubReader();
+        List<MediaType> lazyTypes = new ArrayList<>();
+        lazyTypes.add(MediaTypes.MP3);
+        lazyTypes.add(MediaTypes.MP4);
+        io.documentnode.epub4j.domain.Book book_core = epubReader.readEpubLazy(zipFile, "UTF-8", lazyTypes);
+        byte[] data = book_core.getCoverImage().getData();
+        Cover = new BitmapDrawable(res, BitmapFactory.decodeByteArray(data, 0, data.length));
+        Title = book_core.getTitle();
+        Log.v("what", "wait");
     }
 
-    //获取作者id
-    public int getAuthor() {
-        return Author;
+    public Boolean equal(Book book){
+        return this.Like == book.Like && Objects.equals(this.Title, book.Title) && this.Cover == book.Cover;
     }
-
-    //获取进度id
-    public int getProgress() {
-        return Progress;
-    }
-
-    //打开书
-    public void open() {
-
-    }
-
-
 }

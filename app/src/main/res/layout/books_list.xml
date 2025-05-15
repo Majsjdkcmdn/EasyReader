@@ -21,6 +21,11 @@
         android:paddingStart="16dp"
         android:paddingEnd="16dp">
 
+        <View
+            android:layout_width="wrap_content"
+            android:layout_height="0dp"
+            android:layout_weight="1"/>
+
         <TextView
             android:id="@+id/book_title"
             android:layout_width="wrap_content"
@@ -29,14 +34,6 @@
             android:padding="1dp"
             android:textSize="26sp"
             android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/book_author"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/book_author"
-            android:padding="1dp"
-            android:textSize="20sp" />
 
         <View
             android:layout_width="wrap_content"
@@ -62,8 +59,11 @@
         android:paddingEnd="0dp">
         <View
             android:layout_width="wrap_content"
+            android:layout_height="16dp" />
+        <View
+            android:layout_width="wrap_content"
             android:layout_height="0dp"
-            android:layout_weight="1.5"/>
+            android:layout_weight="1"/>
         <ImageView
             android:id="@+id/book_favourite"
             android:layout_width="wrap_content"

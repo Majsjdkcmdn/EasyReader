@@ -5,8 +5,8 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
 import androidx.viewpager2.adapter.FragmentStateAdapter;
 
-public class FragmentMainPageAdapter extends FragmentStateAdapter {
-    public FragmentMainPageAdapter(@NonNull FragmentActivity fragmentActivity){
+public class MainPageFragmentAdapter extends FragmentStateAdapter {
+    public MainPageFragmentAdapter(@NonNull FragmentActivity fragmentActivity){
         super(fragmentActivity);
     }
 
@@ -15,11 +15,11 @@ public class FragmentMainPageAdapter extends FragmentStateAdapter {
     public Fragment createFragment(int position){
         switch (position){
             case 1:
-                return new FragmentNotes1();
+                return new FragmentNotes();
             case 2:
-                return new FragmentListen1();
+                return new FragmentListen();
             default:
-                return new FragmentBooks1();
+                return new FragmentBooks();
         }
     }
 

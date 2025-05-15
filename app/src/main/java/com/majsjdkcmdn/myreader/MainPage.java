@@ -2,6 +2,7 @@ package com.majsjdkcmdn.myreader;
 
 
 import android.Manifest;
+import android.content.res.Resources;
 import android.os.Build;
 import android.os.Bundle;
 
@@ -17,36 +18,28 @@ import java.util.Map;
 public class MainPage extends AppCompatActivity{
     private ViewPager2 viewPager2_nav;
     private RadioGroup radioGroup_nav;
-
-    // 在Fragment中声明ActivityResultLauncher
     private final ActivityResultLauncher<String[]> permissionLauncher = registerForActivityResult(
             new ActivityResultContracts.RequestMultiplePermissions(),
             result -> {
-                // 权限请求结果处理
                 Map<String, Boolean> permissions = result;
-                // 处理逻辑...
             }
     );
 
-    // 请求权限方法
     private void requestPermissions() {
         int sdkVersion = Build.VERSION.SDK_INT;
 
         if (sdkVersion >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            // Android 14+ 需要三个权限
             permissionLauncher.launch(new String[]{
                     Manifest.permission.READ_MEDIA_IMAGES,
                     Manifest.permission.READ_MEDIA_VIDEO,
                     Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED
             });
         } else if (sdkVersion == Build.VERSION_CODES.TIRAMISU) {
-            // Android 13 需要两个权限
             permissionLauncher.launch(new String[]{
                     Manifest.permission.READ_MEDIA_IMAGES,
                     Manifest.permission.READ_MEDIA_VIDEO
             });
         } else {
-            // Android 12 及以下版本
             permissionLauncher.launch(new String[]{
                     Manifest.permission.READ_EXTERNAL_STORAGE
             });
@@ -58,11 +51,12 @@ public class MainPage extends AppCompatActivity{
     public void onCreate(Bundle savedInstanceState){
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        requestPermissions();
 
         viewPager2_nav = findViewById(R.id.mp_viewpager);
         radioGroup_nav = findViewById(R.id.mp_tab_bar);
 
-        FragmentMainPageAdapter adapter = new FragmentMainPageAdapter(this);
+        MainPageFragmentAdapter adapter = new MainPageFragmentAdapter(this);
         viewPager2_nav.setAdapter(adapter);
 
         radioGroup_nav.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
