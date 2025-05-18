@@ -25,20 +25,21 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
 public class Book{
-    public int ID;
+
+    public String ID;
     public Drawable Cover;
     public String Title = "标题";
+    public int LastPage = 0;
     public double progress = 0;
     public String Progress = progress +"%";
     public String FilePath = "";
     public int FileClass = 0;//1:epub 2:pdf 3:ebe
     public Boolean Like = false;
-    public Book(Resources res, int id){
+    public Book(Resources res, String id){
         ID = id;
         Cover = getDrawable(res, R.drawable.cover_default,null);
     }
-    public Book(Resources res, int id, ZipFile zipFile, String name) {
-        //TODO
+    public Book(Resources res, String id, ZipFile zipFile, String name) {
         ID = id;
         FilePath = name;
         FileClass = 1;
@@ -49,7 +50,6 @@ public class Book{
         } catch (Exception e) {
             Log.v("what", String.valueOf(e));
         }
-
         try{
             Cover = new BitmapDrawable(res, epubParser.parseCover());
         }catch (Exception e){
@@ -59,7 +59,7 @@ public class Book{
     }
     //init epub
 
-    public Book(Resources res, int id, File file, String name) {
+    public Book(Resources res, String id, File file, String name) {
         //TODO
         ID = id;
         FilePath = name;
@@ -68,7 +68,7 @@ public class Book{
     }
     //init pdf
 
-    public Book(int id, ZipFile zipFile, String name, Resources res) {
+    public Book(String id, ZipFile zipFile, String name, Resources res) {
         //TODO
         ID = id;
         FilePath = name;
@@ -175,7 +175,6 @@ public class Book{
                         if ("dc:title".equals(tagName)) {
                             Title = parser.nextText();
                         }
-
                     }
                     eventType = parser.next();
                 }

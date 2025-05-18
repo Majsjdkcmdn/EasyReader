@@ -91,4 +91,25 @@ public class MainPage extends AppCompatActivity{
             }
         });
     }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        saveData();
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        saveData();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        saveData();
+    }
+
+    private void saveData() {
+    }
 }

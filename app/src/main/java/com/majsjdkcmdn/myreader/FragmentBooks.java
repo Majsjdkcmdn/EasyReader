@@ -2,6 +2,7 @@ package com.majsjdkcmdn.myreader;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.res.Resources;
 import android.database.Cursor;
@@ -15,21 +16,27 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
+import android.widget.EditText;
 import android.widget.ImageView;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.alibaba.fastjson.JSON;
+
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.channels.FileChannel;
 
@@ -59,9 +66,8 @@ public class FragmentBooks extends Fragment {
                         Uri fileUri = result.getData().getData();
                         copyFileToPrivateDirectory(fileUri);
                         try {
-                            booksManager.renew(booksDirectory+"/"+name);
-                            booksManager.submitList(bookList);
-                            //booksManager.notifyItemRangeChanged(0, bookList.size()-1);
+                            booksManager.importBook(booksDirectory+"/"+name);
+                            booksManager.notifyItemRangeChanged(0, bookList.size());
                         } catch (IOException e) {
                             Log.e("error", String.valueOf(e));
                         }
@@ -81,6 +87,32 @@ public class FragmentBooks extends Fragment {
         catch (Exception e){
             Log.e("error", String.valueOf(e));
         }
+    }
+
+    public void modifyName(int position){
+        AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
+        builder.setTitle("Rename Book");
+        final EditText input = new EditText(requireContext());
+        input.setText(bookList.get(position).Title);
+        builder.setView(input);
+        builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                String newTitle = input.getText().toString();
+                if (!newTitle.isEmpty()) {
+                    bookList.get(position).Title = newTitle;
+                    booksManager.updateBookTitle(position, newTitle);
+                    booksManager.notifyItemChanged(position, 0);
+                }
+            }
+        });
+        builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.cancel();
+            }
+        });
+        builder.show();
     }
 
     private void copyFileToPrivateDirectory(Uri fileUri) {
@@ -107,7 +139,7 @@ public class FragmentBooks extends Fragment {
                     int nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
                     if (nameIndex != -1) {
                         result = cursor.getString(nameIndex);
-                    };
+                    }
                 }
             } finally {
                 cursor.close();
@@ -133,7 +165,7 @@ public class FragmentBooks extends Fragment {
             res = getResources();
             booksDirectory = new File(context.getFilesDir(), "books");
             assetsDirectory = new File(context.getFilesDir(), "assets");
-            database = new File(context.getFilesDir(), "database");
+            database = new File(context.getFilesDir(), "database.json");
             if(!booksDirectory.exists()){
                 booksDirectory.mkdir();
             }
@@ -141,20 +173,23 @@ public class FragmentBooks extends Fragment {
                 assetsDirectory.mkdir();
             }
             if(!database.exists()){
+                try {
+                    database.createNewFile();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+                Log.v("File", String.valueOf(database));
                 Log.v("Create","Creating database");
             }
 
-            File[] files = context.getFilesDir().listFiles();
-
             //test
+            File[] files = context.getFilesDir().listFiles();
             assert files != null;
             for(File file:files){
                 Log.v("filename", file.getName());
             }
-
             for(File file: Objects.requireNonNull(booksDirectory.listFiles())){
                 Log.v("filename", file.getName());
-                //file.delete();
             }
             //test
             //TODO REMOVE
@@ -165,10 +200,10 @@ public class FragmentBooks extends Fragment {
             recyclerViewBooks.setLayoutManager(new LinearLayoutManager(getContext()));
 
             try {
-                booksManager = new BooksManager(res, booksDirectory);
+                booksManager = new BooksManager(res, booksDirectory, database);
             } catch (IOException e) {
                 try {
-                    booksManager = new BooksManager(res);
+                    booksManager = new BooksManager(res, database);
                 } catch (IOException ex) {
                     throw new RuntimeException(ex);
                 }
@@ -176,11 +211,9 @@ public class FragmentBooks extends Fragment {
             bookList = booksManager.Book_list;
             recyclerViewBooks.setAdapter(booksManager);
 
-
             importIcon.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    //TODO
                     importBooks();
                 }
             });
@@ -195,32 +228,26 @@ public class FragmentBooks extends Fragment {
             booksManager.setOnBookModifyClickListener(new BooksManager.OnBookModifyClickListener() {
                 @Override
                 public void onBookModifyClick(int position) {
-                    //TODO
-                    //
-                    Log.v("modify", String.valueOf(position));
+                    modifyName(position);
                 }
             });
             booksManager.setOnBookLikeClickListener(new BooksManager.OnBookLikeClickListener() {
                 @Override
                 public void onBookLikeClick(int position) {
-                    //TODO
-                    //
                     bookList.get(position).Like = !bookList.get(position).Like;
-                    booksManager.notifyItemChanged(position);
+                    booksManager.toggleFavorite(position);
+                    booksManager.notifyItemChanged(position, 0);
                     Log.v("like", String.valueOf(position));
                 }
             });
             booksManager.setOnBookDeleteClickListener(new BooksManager.OnBookDeleteClickListener() {
                 @Override
-                public void onBookDeleteClick(int position) {
-                    //TODO
-                    //
+                public void onBookDeleteClick(int position){
                     Log.v("delete", String.valueOf(position));
                     File bookfile = new File(bookList.get(position).FilePath);
                     bookfile.delete();
                     booksManager.deleteBook(position);
                     booksManager.notifyItemRemoved(position);
-                    booksManager.notifyItemRangeChanged(0, bookList.size());
                 }
             });
 
@@ -230,5 +257,36 @@ public class FragmentBooks extends Fragment {
                 Objects.requireNonNull(activity.getSupportActionBar()).setDisplayShowTitleEnabled(false);
             }
         return view;
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        saveData();
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+        saveData();
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        saveData();
+    }
+
+    private void saveData() {
+        try {
+            BufferedWriter writer = new BufferedWriter(new FileWriter(database));
+            for(BooksManager.DatabaseData data:booksManager.dataList_updated){
+                writer.write(JSON.toJSONString(data));
+                writer.newLine();
+            }
+            writer.close();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
