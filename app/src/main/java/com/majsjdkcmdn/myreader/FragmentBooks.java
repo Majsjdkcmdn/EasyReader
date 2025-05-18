@@ -38,9 +38,6 @@ import java.util.Objects;
 
 
 public class FragmentBooks extends Fragment {
-    private static final int REQUEST_CODE_FILE_PICKER = 1;
-    private Toolbar toolbar;
-    private ImageView importIcon;
     private RecyclerView recyclerViewBooks;
     private BooksManager booksManager;
     private List<Book> bookList;
@@ -49,7 +46,7 @@ public class FragmentBooks extends Fragment {
     Resources res;
     File booksDirectory;
     File assetsDirectory;
-    File databaseDirectory;
+    File database;
     String name;
 
     @Override
@@ -62,11 +59,12 @@ public class FragmentBooks extends Fragment {
                         Uri fileUri = result.getData().getData();
                         copyFileToPrivateDirectory(fileUri);
                         try {
-                            bookList = booksManager.renew(booksDirectory+"/"+name);
+                            booksManager.renew(booksDirectory+"/"+name);
+                            booksManager.submitList(bookList);
+                            //booksManager.notifyItemRangeChanged(0, bookList.size()-1);
                         } catch (IOException e) {
-                            throw new RuntimeException(e);
+                            Log.e("error", String.valueOf(e));
                         }
-                        booksManager.submitList(bookList);
                     }
                 }
         );
@@ -80,8 +78,8 @@ public class FragmentBooks extends Fragment {
             intent.addCategory(Intent.CATEGORY_OPENABLE);
             intent.putExtra(Intent.EXTRA_MIME_TYPES, mimetypes);
             filePickerLauncher.launch(intent);}
-        catch (Exception exception){
-            Log.e("error", "error");
+        catch (Exception e){
+            Log.e("error", String.valueOf(e));
         }
     }
 
@@ -93,17 +91,13 @@ public class FragmentBooks extends Fragment {
             try (FileChannel inputChannel = new FileInputStream(inputPfd.getFileDescriptor()).getChannel();
                  FileChannel outputChannel = new FileOutputStream(destinationFile).getChannel()) {
                 inputChannel.transferTo(0, inputChannel.size(), outputChannel);
-                Log.v("succ", "succ");
+                Log.v("Success", "copy success!");
             }
         } catch (IOException e) {
-            Log.e("error", "shibai");
+            Log.e("error", String.valueOf(e));
         }
-        for(File file: Objects.requireNonNull(booksDirectory.listFiles())){
-            Log.v("filename", file.getName());
-            //TODO
-        }
-
     }
+
     private String getFileName(Uri uri) {
         String result = null;
         if (uri.getScheme().equals("content")) {
@@ -139,19 +133,20 @@ public class FragmentBooks extends Fragment {
             res = getResources();
             booksDirectory = new File(context.getFilesDir(), "books");
             assetsDirectory = new File(context.getFilesDir(), "assets");
-            databaseDirectory = new File(context.getFilesDir(), "database");
+            database = new File(context.getFilesDir(), "database");
             if(!booksDirectory.exists()){
                 booksDirectory.mkdir();
             }
             if(!assetsDirectory.exists()){
                 assetsDirectory.mkdir();
             }
-            if(!databaseDirectory.exists()){
-                databaseDirectory.mkdir();
+            if(!database.exists()){
+                Log.v("Create","Creating database");
             }
 
-
             File[] files = context.getFilesDir().listFiles();
+
+            //test
             assert files != null;
             for(File file:files){
                 Log.v("filename", file.getName());
@@ -160,12 +155,12 @@ public class FragmentBooks extends Fragment {
             for(File file: Objects.requireNonNull(booksDirectory.listFiles())){
                 Log.v("filename", file.getName());
                 //file.delete();
-                //TODO
             }
+            //test
+            //TODO REMOVE
 
-
-            toolbar = view.findViewById(R.id.books_toolbar);
-            importIcon = view.findViewById(R.id.toolbar_import);
+            Toolbar toolbar = view.findViewById(R.id.books_toolbar);
+            ImageView importIcon = view.findViewById(R.id.toolbar_import);
             recyclerViewBooks = view.findViewById(R.id.books_list_all);
             recyclerViewBooks.setLayoutManager(new LinearLayoutManager(getContext()));
 
@@ -181,12 +176,28 @@ public class FragmentBooks extends Fragment {
             bookList = booksManager.Book_list;
             recyclerViewBooks.setAdapter(booksManager);
 
+
+            importIcon.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    //TODO
+                    importBooks();
+                }
+            });
             booksManager.setOnBookCoverClickListener(new BooksManager.OnBookCoverClickListener() {
                 @Override
                 public void onBookCoverClick(int position) {
                     //TODO
                     //bookList.get(position).open();
-                    Log.v("pos", String.valueOf(position));
+                    Log.v("open", String.valueOf(position));
+                }
+            });
+            booksManager.setOnBookModifyClickListener(new BooksManager.OnBookModifyClickListener() {
+                @Override
+                public void onBookModifyClick(int position) {
+                    //TODO
+                    //
+                    Log.v("modify", String.valueOf(position));
                 }
             });
             booksManager.setOnBookLikeClickListener(new BooksManager.OnBookLikeClickListener() {
@@ -194,36 +205,30 @@ public class FragmentBooks extends Fragment {
                 public void onBookLikeClick(int position) {
                     //TODO
                     //
-                    Log.v("like", String.valueOf(position));
                     bookList.get(position).Like = !bookList.get(position).Like;
                     booksManager.notifyItemChanged(position);
+                    Log.v("like", String.valueOf(position));
                 }
             });
             booksManager.setOnBookDeleteClickListener(new BooksManager.OnBookDeleteClickListener() {
                 @Override
                 public void onBookDeleteClick(int position) {
                     //TODO
-                    //bookList.get(position).open();
+                    //
                     Log.v("delete", String.valueOf(position));
-                    bookList = booksManager.deleteBook(position);
-                    booksManager.submitList(bookList);
+                    File bookfile = new File(bookList.get(position).FilePath);
+                    bookfile.delete();
+                    booksManager.deleteBook(position);
+                    booksManager.notifyItemRemoved(position);
+                    booksManager.notifyItemRangeChanged(0, bookList.size());
                 }
             });
 
-            importIcon.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    //TODO
-                    importBooks();
-
-                }
-            });
             AppCompatActivity activity = (AppCompatActivity) getActivity();
             if (activity != null) {
                 activity.setSupportActionBar(toolbar);
                 Objects.requireNonNull(activity.getSupportActionBar()).setDisplayShowTitleEnabled(false);
             }
-
         return view;
     }
 }

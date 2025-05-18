@@ -2,7 +2,6 @@ package com.majsjdkcmdn.myreader;
 
 
 import android.Manifest;
-import android.content.res.Resources;
 import android.os.Build;
 import android.os.Bundle;
 
