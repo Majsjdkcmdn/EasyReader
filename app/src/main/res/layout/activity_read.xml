@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".ReadPage"
+    android:padding="12dp">
+
+    <LinearLayout
+        android:id="@+id/book_view_top"
+        android:layout_width="match_parent"
+        android:layout_alignParentTop="true"
+        android:layout_height="32dp">
+
+        <ImageView
+            android:id="@+id/book_read_back"
+            android:layout_width="32dp"
+            android:layout_height="match_parent"
+            android:contentDescription="@string/book_back"
+            android:src="@drawable/arrow_left" />
+
+        <View
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="match_parent" />
+
+        <TextView
+            android:id="@+id/book_read_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:contentDescription="@string/book_title"
+            android:textSize="16sp"
+            android:layout_gravity="center_vertical"
+            android:text="@string/book_title" />
+    </LinearLayout>
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/book_view_zone"
+        android:layout_above="@id/book_view_bottom"
+        android:layout_below="@id/book_view_top"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <LinearLayout
+        android:id="@+id/book_view_bottom"
+        android:layout_width="match_parent"
+        android:layout_height="32dp"
+        android:layout_alignParentBottom="true"
+        android:gravity="bottom">
+
+        <TextView
+            android:id="@+id/book_read_progress"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:contentDescription="@string/book_progress"
+            android:text="@string/book_progress"
+            android:layout_gravity="center_vertical"/>
+
+        <View
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="match_parent" />
+        <TextView
+            android:id="@+id/book_read_meta_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_vertical"
+            android:textSize="16sp"
+            android:paddingStart="4dp"
+            android:paddingEnd="4dp"
+            android:text="@string/book_meta"/>
+        <ImageView
+            android:id="@+id/book_read_meta_image"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:contentDescription="@string/book_meta"
+            android:src="@drawable/meta" />
+
+    </LinearLayout>
+</RelativeLayout>

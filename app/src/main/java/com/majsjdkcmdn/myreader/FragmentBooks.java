@@ -221,8 +221,10 @@ public class FragmentBooks extends Fragment {
                 @Override
                 public void onBookCoverClick(int position) {
                     //TODO
-                    //bookList.get(position).open();
                     Log.v("open", String.valueOf(position));
+                    Intent intent = new Intent(getActivity(), ReadPage.class);
+                    intent.putExtra("bookPath", bookList.get(position).FilePath);
+                    startActivity(intent);
                 }
             });
             booksManager.setOnBookModifyClickListener(new BooksManager.OnBookModifyClickListener() {

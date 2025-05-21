@@ -7,6 +7,9 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
+import android.os.Parcel;
+import android.os.Parcelable;
+import android.service.quicksettings.Tile;
 import android.util.Log;
 
 import org.xmlpull.v1.XmlPullParser;
@@ -19,22 +22,84 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
-public class Book{
-
+public class Book implements Parcelable {
     public String ID;
     public Drawable Cover;
     public String Title = "标题";
     public int LastPage = 0;
-    public double progress = 0;
-    public String Progress = progress +"%";
+    public double ProgressNum = 0;
+    public String ProgressStr = ProgressNum +"%";
     public String FilePath = "";
     public int FileClass = 0;//1:epub 2:pdf 3:ebe
     public Boolean Like = false;
+    public EpubParser epubParser;
+    public PdfParser pdfParser;
+    public EbeParser ebeParser;
+
+    public void setID(String ID){this.ID = ID;}
+    public void setCover(Drawable Cover){this.Cover = Cover;}
+    public void setTitle(String Title){this.Title = Title;}
+    public void setLastPage(int LastPage){this.LastPage = LastPage;}
+    public void setProgressNum(double ProgressNum){this.ProgressNum = ProgressNum;}
+    public void setProgressStr(String ProgressStr){this.ProgressStr = ProgressStr;}
+    public void setFilePath(String FilePath){this.FilePath = FilePath;}
+    public void setFileClass(int FileClass){this.FileClass = FileClass;}
+    public void setLike(Boolean Like){this.Like = Like;}
+    public String getID(){return ID;}
+    public Drawable getCover(){return Cover;}
+    public String getTitle(){return Title;}
+    public int getLastPage(){return LastPage;}
+    public double getProgressNum(){return ProgressNum;}
+    public String getProgressStr() {return ProgressStr;}
+    public String getFilePath() {return FilePath;}
+    public int getFileClass() {return FileClass;}
+    public Boolean getLike() {return Like;}
+
+
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+    @Override
+    public void writeToParcel(Parcel dest, int flags) {
+        dest.writeString(ID);
+        dest.writeString(Title);
+        dest.writeInt(LastPage);
+        dest.writeDouble(ProgressNum);
+        dest.writeString(ProgressStr);
+        dest.writeString(FilePath);
+        dest.writeInt(FileClass);
+        if(Like)
+            dest.writeInt(1);
+        else dest.writeInt(0);
+    }
+    public Book(Parcel source){
+        ID = source.readString();
+        Title = source.readString();
+        LastPage = source.readInt();
+        ProgressNum = source.readDouble();
+        ProgressStr = source.readString();
+        FilePath = source.readString();
+        FileClass = source.readInt();
+        Like = source.readInt() == 1;
+    }
+    public static final Creator<Book> CREATOR = new Creator<Book>() {
+        public Book[] newArray(int size) {
+            return new Book[size];
+        }
+        @Override
+        public Book createFromParcel(Parcel source) {
+            return new Book(source);
+        }
+    };
+
     public Book(Resources res, String id){
         ID = id;
         Cover = getDrawable(res, R.drawable.cover_default,null);
@@ -43,7 +108,7 @@ public class Book{
         ID = id;
         FilePath = name;
         FileClass = 1;
-        EpubParser epubParser = new EpubParser(zipFile);
+        epubParser = new EpubParser(zipFile);
         try {
             epubParser.parseOpf();
             Log.v("Succ", "Succ");
@@ -79,19 +144,20 @@ public class Book{
 
     public Boolean equal(Book book){
         return this.Like == book.Like && Objects.equals(this.Title, book.Title)
-                && this.FileClass == book.FileClass && this.ID == book.ID;
+                && this.FileClass == book.FileClass && Objects.equals(this.ID, book.ID);
     }
 
-    private class EpubParser{
+    public class EpubParser{
         private final ZipFile epubFile;
-        private String opfPath;
-        private String opfDic;
-        private String ncxPath;
-        private String cssPath;
-        private String coverPath;
-        private List<String> textPath = new ArrayList<>();
-        private List<String> imagePath = new ArrayList<>();
-        private EpubParser(ZipFile zipFile){
+        public String opfPath;
+        public String opfDic;
+        public String ncxPath;
+        public String cssPath;
+        public String coverPath;
+        public List<String> spine = new ArrayList<>();
+        public Map<String, String> xhtmlMap = new HashMap<>();
+        public Map<String, String> imageMap = new HashMap<>();
+        public EpubParser(ZipFile zipFile){
             epubFile = zipFile;
             try {
                 parseContainer();
@@ -100,7 +166,7 @@ public class Book{
             }
         }
 
-        private void parseContainer() throws IOException {
+        public void parseContainer() throws IOException {
             ZipEntry containerEntry = epubFile.getEntry("META-INF/container.xml");
             InputStream inputStream = epubFile.getInputStream(containerEntry);
 
@@ -126,7 +192,7 @@ public class Book{
             }
         }
 
-        private void parseOpf() throws Exception {
+        public void parseOpf() throws Exception {
             if (opfPath == null) {
                 throw new IllegalStateException("OPF path not found");
             }
@@ -146,12 +212,14 @@ public class Book{
 
                 int eventType = parser.getEventType();
                 String coverName = "cover";
+                int noLinearCount = 0;
                 while (eventType != XmlPullParser.END_DOCUMENT) {
                     String tagName = parser.getName();
                     if (eventType == XmlPullParser.START_TAG) {
                         if("item".equals(tagName)){
-                            String attrType = parser.getAttributeValue(null, "media-type");
+                            String attrID = parser.getAttributeValue(null, "id");
                             String attrHref = parser.getAttributeValue(null, "href");
+                            String attrType = parser.getAttributeValue(null, "media-type");
                             if("application/x-dtbncx+xml".equals(attrType)){
                                 ncxPath = attrHref;
                             }
@@ -159,12 +227,22 @@ public class Book{
                                 cssPath = attrHref;
                             }
                             else if("image/jpeg".equals(attrType)){
-                                if(coverName.equals(parser.getAttributeValue(null, "id"))){
+                                if(coverName.equals(attrID)){
                                     coverPath = attrHref;
                                 }
                                 else{
-                                    imagePath.add(attrHref);
+                                    imageMap.put(attrID, attrHref);
                                 }
+                            }else if("image/png".equals(attrType)){
+                                if(coverName.equals(attrID)){
+                                    coverPath = attrHref;
+                                }
+                                else{
+                                    imageMap.put(attrID, attrHref);
+                                }
+                            }
+                            else if("application/xhtml+xml".equals(attrType)){
+                                xhtmlMap.put(attrID, attrHref);
                             }
                         }
 
@@ -175,6 +253,14 @@ public class Book{
                         if ("dc:title".equals(tagName)) {
                             Title = parser.nextText();
                         }
+
+                        if("itemref".equals(tagName)){
+                            if("no".equals(parser.getAttributeValue(null, "linear"))){
+                                spine.add(noLinearCount,parser.getAttributeValue(null,"idref"));
+                            }
+                            else
+                                spine.add(parser.getAttributeValue(null,"idref"));
+                        }
                     }
                     eventType = parser.next();
                 }
@@ -182,7 +268,7 @@ public class Book{
             }
         }
 
-        private Bitmap parseCover() throws IOException {
+        public Bitmap parseCover() throws IOException {
             ZipEntry coverEntry = epubFile.getEntry(opfDic + coverPath);
             try (InputStream inputStream = epubFile.getInputStream(coverEntry);
                  BufferedInputStream bufferedInputStream = new BufferedInputStream(inputStream);
@@ -197,16 +283,17 @@ public class Book{
             }
         }
 
-        private void parseNcx(){
+        public void parseNcx(){
+
         }
 
     }
 
-    private class PdfParser{
+    public class PdfParser{
 
     }
 
-    private class EbeParser{
+    public class EbeParser{
 
     }
 }

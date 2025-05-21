@@ -102,8 +102,6 @@ public class BooksManager extends ListAdapter<Book, BooksManager.BookViewHolder>
         this.res = res;
         this.Database = Database;
     }
-    //管理器类初始化，从指定文件中读取相关列表并赋值
-    //文件可以选用SQLite数据库文件
     public BooksManager(Resources res, File Dic, File Database) throws IOException {
         //TODO
         super(new BookDiff());
@@ -114,6 +112,7 @@ public class BooksManager extends ListAdapter<Book, BooksManager.BookViewHolder>
         try (BufferedReader bufferedReader = new BufferedReader(new FileReader(Database))) {
             String line;
             while ((line = bufferedReader.readLine()) != null) {
+                Log.v("Json", line);
                 DatabaseData data=JSON.parseObject(line,DatabaseData.class);
                 dataList.add(data);
             }
@@ -353,7 +352,7 @@ public class BooksManager extends ListAdapter<Book, BooksManager.BookViewHolder>
         Book book = Book_list.get(position);
         holder.imageViewCover.setImageDrawable(book.Cover);
         holder.textViewTitle.setText(book.Title);
-        holder.textViewProgress.setText(book.Progress);
+        holder.textViewProgress.setText(book.ProgressStr);
         holder.imageViewFavorite.setActivated(book.Like);
     }
 

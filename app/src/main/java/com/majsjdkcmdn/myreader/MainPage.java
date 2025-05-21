@@ -93,6 +93,12 @@ public class MainPage extends AppCompatActivity{
     }
 
     @Override
+    protected void onResume(){
+        super.onResume();
+
+    }
+
+    @Override
     protected void onPause() {
         super.onPause();
         saveData();
