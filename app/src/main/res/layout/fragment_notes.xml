@@ -18,6 +18,11 @@
             android:layout_gravity="start"
             android:textSize="30sp" />
     </androidx.appcompat.widget.Toolbar>
-
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@+id/notes_toolbar"
+        android:text="笔记和听书都未实现，此为demo版本，只能进行简单的epub阅读"
+        android:textSize="50dp"/>
 
 </RelativeLayout>

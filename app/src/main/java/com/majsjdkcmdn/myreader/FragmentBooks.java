@@ -11,11 +11,13 @@ import android.os.Bundle;
 
 import android.os.ParcelFileDescriptor;
 import android.provider.OpenableColumns;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
+import android.view.WindowManager;
 import android.widget.EditText;
 import android.widget.ImageView;
 
@@ -40,6 +42,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.channels.FileChannel;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -223,11 +226,22 @@ public class FragmentBooks extends Fragment {
             booksManager.setOnBookCoverClickListener(new BooksManager.OnBookCoverClickListener() {
                 @Override
                 public void onBookCoverClick(int position) {
+                    WindowManager wm = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
+                    DisplayMetrics dm = new DisplayMetrics();
+                    wm.getDefaultDisplay().getMetrics(dm);
+                    int width = dm.widthPixels;         // 屏幕宽度（像素）
+                    int height = dm.heightPixels;       // 屏幕高度（像素）
+                    float density = dm.density;         // 屏幕密度（0.75 / 1.0 / 1.5）
+                    int screenWidth = (int) (width / density);  // 屏幕宽度(dp)
+                    int screenHeight = (int) (height / density);// 屏幕高度(dp)
                     Log.v("open", String.valueOf(position));
                     Intent intent = new Intent(getActivity(), ReadPage.class);
                     intent.putExtra("ReadingPath", bookList.get(position).ReadingPath);
-                    intent.putExtra("bookID", bookList.get(position).ID);
+                    intent.putExtra("bookPage", bookList.get(position).LastPage);
                     intent.putExtra("bookTitle", bookList.get(position).Title);
+                    intent.putStringArrayListExtra("ChapterList", (ArrayList<String>) bookList.get(position).ChapterSeq);
+                    intent.putExtra("height", screenHeight-100);
+                    intent.putExtra("width", screenWidth-36);
                     startActivity(intent);
                 }
             });

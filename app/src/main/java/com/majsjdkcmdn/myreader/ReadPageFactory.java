@@ -1,7 +1,17 @@
 package com.majsjdkcmdn.myreader;
 
+import android.content.Context;
+import android.content.res.Resources;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
 import android.text.Spannable;
 import android.text.SpannableString;
+import android.text.SpannableStringBuilder;
+import android.text.Spanned;
+import android.text.style.ImageSpan;
+import android.text.style.RelativeSizeSpan;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -15,22 +25,26 @@ import java.util.List;
 
 public class ReadPageFactory {
     private List<String> ChapterList = new ArrayList<>();
+    private String AssetPath;
     private String ReadingPath;
+
     public static class Asset{
-        private String ClassID;
-        private String content;
+        public String ClassID;
+        public String content;
         public Asset(String ClassID, String content){
             this.ClassID = ClassID;
             this.content = content;
         }
     }
-    public ReadPageFactory(List<String> ChapterList, String ReadingPath){
-        this.ChapterList = ChapterList;
+    public ReadPageFactory(String ReadingPath, List<String> ChapterList){
         this.ReadingPath = ReadingPath;
+        this.AssetPath = ReadingPath.substring(0,ReadingPath.lastIndexOf("/"));
+        this.ChapterList = ChapterList;
     }
-    public List<List<Asset>> ParseXHtml(int position) throws Exception {
-        File htmlFile = new File(ChapterList.get(position));
-        int lineCnt = 50;
+    public List<List<Asset>> ParseXHtml(int position, int height, int width, int LineSpace) throws Exception {
+        File htmlFile = new File(AssetPath+"/"+ChapterList.get(position));
+        int lineCnt = height/LineSpace;
+        int max_char = width/24;
         int curLineCnt = 0;
         Document html = Jsoup.parse(htmlFile);
 
@@ -53,13 +67,14 @@ public class ReadPageFactory {
                     pages.add(tmp);
                 } continue;
             } else if(isHeading(element)){
-                curLineCnt += 3;
-                if (!curText.isEmpty()) page.add(flushTextBuffer(curText));
-                page.add(new Asset(element.tagName(), element.text()));
-            } else if (isParagraph(element)) {
                 curLineCnt += 1;
+                if (!curText.isEmpty()) page.add(flushTextBuffer(curText));
+                page.add(new Asset(element.tagName(), element.text()+"\n"));
+            } else if (isParagraph(element)) {
                 String text = element.text();
+                curLineCnt += text.length()/max_char + 1;
                 if (!text.isEmpty()) curText.add(text);
+                else curText.add("\n");
             }
 
             if (curLineCnt >= lineCnt){
@@ -74,10 +89,45 @@ public class ReadPageFactory {
 
         return pages;
     }
-    public List<SpannableString> GetSpannableString(List<List<Asset>> AssetLists){
-        List<SpannableString> SpanList= new ArrayList<>();
+    public List<SpannableStringBuilder> GetSpannableString(List<List<Asset>> AssetLists, Resources resources, int width, int height) throws IOException {
+        List<SpannableStringBuilder> SpanList= new ArrayList<>();
         for(List<Asset> AssetList:AssetLists){
+            SpannableStringBuilder builder = new SpannableStringBuilder();
+            for(Asset asset:AssetList){
+                if(asset.ClassID.matches("h[1-4]")){
+                    SpannableString tempSpan = new SpannableString(asset.content);
+                    tempSpan.setSpan(new RelativeSizeSpan(1.25F), 0, tempSpan.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    builder.append(tempSpan);
+                }else if(asset.ClassID.equals("p")){
+                    SpannableString tempSpan = new SpannableString(asset.content);
+                    builder.append(tempSpan);
+                }else if(asset.ClassID.equals("img")){
+                    String pos = new File(ReadingPath +"/"+ asset.content).getCanonicalFile().getAbsolutePath();
+                    Bitmap bitmap = BitmapFactory.decodeFile(pos);
+                    int imgWidth = bitmap.getWidth();
+                    int imgHeight = bitmap.getHeight();
 
+                    float imgRatio = (float) imgWidth / imgHeight;
+                    float containerRatio = (float) width / height;
+
+                    float scale;
+                    if (imgRatio > containerRatio) {
+                        scale = (float) width / imgWidth;
+                    } else {
+                        scale = (float) height / imgHeight;
+                    }
+
+                    int scaledWidth = Math.round(imgWidth * scale);
+                    int scaledHeight = Math.round(imgHeight * scale);
+                    Bitmap nbitmap = Bitmap.createScaledBitmap(bitmap, scaledWidth, scaledHeight, true);
+                    Drawable drawable = new BitmapDrawable(resources, nbitmap);
+                    drawable.setBounds(0, 0, bitmap.getWidth(), bitmap.getHeight());
+                    ImageSpan imageSpan = new ImageSpan(drawable, ImageSpan.ALIGN_BOTTOM);
+                    builder.append(" ");
+                    builder.setSpan(imageSpan, 0, 1,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                }
+            }
+            SpanList.add(builder);
         }
         return SpanList;
     }
