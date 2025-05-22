@@ -91,11 +91,11 @@ public class FragmentBooks extends Fragment {
 
     public void modifyName(int position){
         AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
-        builder.setTitle("Rename Book");
+        builder.setTitle("重命名");
         final EditText input = new EditText(requireContext());
         input.setText(bookList.get(position).Title);
         builder.setView(input);
-        builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+        builder.setPositiveButton("确定", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 String newTitle = input.getText().toString();
@@ -106,7 +106,7 @@ public class FragmentBooks extends Fragment {
                 }
             }
         });
-        builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+        builder.setNegativeButton("取消", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 dialog.cancel();
@@ -182,16 +182,19 @@ public class FragmentBooks extends Fragment {
                 Log.v("Create","Creating database");
             }
 
-            //test
+            //debug
             File[] files = context.getFilesDir().listFiles();
             assert files != null;
             for(File file:files){
                 Log.v("filename", file.getName());
             }
+            for(File file: Objects.requireNonNull(assetsDirectory.listFiles())){
+                Log.v("filename", file.getName());
+            }
             for(File file: Objects.requireNonNull(booksDirectory.listFiles())){
                 Log.v("filename", file.getName());
             }
-            //test
+            //debug
             //TODO REMOVE
 
             Toolbar toolbar = view.findViewById(R.id.books_toolbar);
@@ -220,10 +223,11 @@ public class FragmentBooks extends Fragment {
             booksManager.setOnBookCoverClickListener(new BooksManager.OnBookCoverClickListener() {
                 @Override
                 public void onBookCoverClick(int position) {
-                    //TODO
                     Log.v("open", String.valueOf(position));
                     Intent intent = new Intent(getActivity(), ReadPage.class);
-                    intent.putExtra("bookPath", bookList.get(position).FilePath);
+                    intent.putExtra("ReadingPath", bookList.get(position).ReadingPath);
+                    intent.putExtra("bookID", bookList.get(position).ID);
+                    intent.putExtra("bookTitle", bookList.get(position).Title);
                     startActivity(intent);
                 }
             });
@@ -247,7 +251,9 @@ public class FragmentBooks extends Fragment {
                 public void onBookDeleteClick(int position){
                     Log.v("delete", String.valueOf(position));
                     File bookfile = new File(bookList.get(position).FilePath);
+                    File assetsfile = new File(bookList.get(position).AssetsPath);
                     bookfile.delete();
+                    assetsfile.delete();
                     booksManager.deleteBook(position);
                     booksManager.notifyItemRemoved(position);
                 }

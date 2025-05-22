@@ -8,7 +8,7 @@ android {
 
     defaultConfig {
         applicationId "com.majsjdkcmdn.myreader"
-        minSdk 24
+        minSdk 26
         targetSdk 35
         versionCode 1
         versionName "1.0"
@@ -33,6 +33,7 @@ android {
 
 dependencies {
     implementation libs.fastjson
+    implementation libs.jsoup
 
     def room_version = "2.7.1"
     implementation "androidx.room:room-runtime:$room_version"

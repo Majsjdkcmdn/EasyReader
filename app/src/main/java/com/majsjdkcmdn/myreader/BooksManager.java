@@ -1,6 +1,5 @@
 package com.majsjdkcmdn.myreader;
 
-
 import android.content.res.Resources;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -31,14 +30,14 @@ import java.util.zip.ZipFile;
 
 //该类负责管理书籍列表并呈现视图
 public class BooksManager extends ListAdapter<Book, BooksManager.BookViewHolder> {
+
     public static class DatabaseData{
         private String ID;
         private String Title;
         private Boolean Like;
         private int LastPage;
         private String FilePath;
-        public DatabaseData(){
-        }
+        public DatabaseData(){}
         public DatabaseData(String id, String title, Boolean like, int lastPage, String filePath){
             ID = id;
             Title = title;
@@ -46,46 +45,18 @@ public class BooksManager extends ListAdapter<Book, BooksManager.BookViewHolder>
             LastPage = lastPage;
             FilePath = filePath;
         }
-        public String getID() {
-            return ID;
-        }
-
-        public void setID(String ID) {
-            this.ID = ID;
-        }
-
-        public String getTitle() {
-            return Title;
-        }
-
-        public void setTitle(String title) {
-            Title = title;
-        }
-
-        public Boolean getLike() {
-            return Like;
-        }
-
-        public void setLike(Boolean like) {
-            Like = like;
-        }
-
-        public int getLastPage() {
-            return LastPage;
-        }
-
-        public void setLastPage(int lastPage) {
-            LastPage = lastPage;
-        }
-
-        public String getFilePath() {
-            return FilePath;
-        }
-
-        public void setFilePath(String filePath) {
-            FilePath = filePath;
-        }
+        public String getID() {return ID;}
+        public void setID(String ID) {this.ID = ID;}
+        public String getTitle() {return Title;}
+        public void setTitle(String title) {Title = title;}
+        public Boolean getLike() {return Like;}
+        public void setLike(Boolean like) {Like = like;}
+        public int getLastPage() {return LastPage;}
+        public void setLastPage(int lastPage) {LastPage = lastPage;}
+        public String getFilePath() {return FilePath;}
+        public void setFilePath(String filePath) {FilePath = filePath;}
     }
+
 
     public List<Book> Book_list = new ArrayList<>();
     Resources res;

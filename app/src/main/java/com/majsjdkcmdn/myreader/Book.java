@@ -19,6 +19,7 @@ import org.xmlpull.v1.XmlPullParserFactory;
 import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -39,9 +40,12 @@ public class Book implements Parcelable {
     public String FilePath = "";
     public int FileClass = 0;//1:epub 2:pdf 3:ebe
     public Boolean Like = false;
-    public EpubParser epubParser;
-    public PdfParser pdfParser;
-    public EbeParser ebeParser;
+    public String AssetsPath = "";
+    public String ReadingPath = "";
+    public List<String> spine = new ArrayList<>();
+    public List<String> ChapterSeq = new ArrayList<>();
+    public Map<String, String> xhtmlMap = new HashMap<>();
+    public Map<String, String> imageMap = new HashMap<>();
 
     public void setID(String ID){this.ID = ID;}
     public void setCover(Drawable Cover){this.Cover = Cover;}
@@ -61,7 +65,6 @@ public class Book implements Parcelable {
     public String getFilePath() {return FilePath;}
     public int getFileClass() {return FileClass;}
     public Boolean getLike() {return Like;}
-
 
     @Override
     public int describeContents() {
@@ -108,19 +111,33 @@ public class Book implements Parcelable {
         ID = id;
         FilePath = name;
         FileClass = 1;
-        epubParser = new EpubParser(zipFile);
+        AssetsPath = name.substring(0,name.lastIndexOf("/"));
+        AssetsPath = AssetsPath.substring(0,AssetsPath.lastIndexOf("/")+1) + "assets/" + id;
+        File assets = new File(AssetsPath);
+
+        if(!assets.exists())
+            assets.mkdir();
+
+        EpubParser epubParser = new EpubParser(zipFile);
         try {
             epubParser.parseOpf();
-            Log.v("Succ", "Succ");
+            epubParser.parseAssets();
+            Log.v("Success", "Success");
         } catch (Exception e) {
-            Log.v("what", String.valueOf(e));
+            Log.v("error", String.valueOf(e));
+        }
+        for(String key:spine){
+            ChapterSeq.add(xhtmlMap.get(key));
         }
         try{
             Cover = new BitmapDrawable(res, epubParser.parseCover());
         }catch (Exception e){
-            Log.v("what", "failed to read cover");
+            Log.v("error", "failed to read data");
             Cover = getDrawable(res, R.drawable.cover_default,null);
         }
+
+        String value = xhtmlMap.entrySet().iterator().next().getValue();
+        ReadingPath = AssetsPath + "/"+ value.substring(0,value.lastIndexOf("/"));
     }
     //init epub
 
@@ -141,7 +158,6 @@ public class Book implements Parcelable {
         Log.v("what", "wait");
     }
     //init ebe
-
     public Boolean equal(Book book){
         return this.Like == book.Like && Objects.equals(this.Title, book.Title)
                 && this.FileClass == book.FileClass && Objects.equals(this.ID, book.ID);
@@ -154,9 +170,6 @@ public class Book implements Parcelable {
         public String ncxPath;
         public String cssPath;
         public String coverPath;
-        public List<String> spine = new ArrayList<>();
-        public Map<String, String> xhtmlMap = new HashMap<>();
-        public Map<String, String> imageMap = new HashMap<>();
         public EpubParser(ZipFile zipFile){
             epubFile = zipFile;
             try {
@@ -270,9 +283,26 @@ public class Book implements Parcelable {
 
         public Bitmap parseCover() throws IOException {
             ZipEntry coverEntry = epubFile.getEntry(opfDic + coverPath);
+            try {
+                InputStream inputStream = epubFile.getInputStream(coverEntry);
+                File file = new File(AssetsPath + "/" + coverPath);
+                if (!file.exists()) {
+                    file.getParentFile().mkdirs();
+                    FileOutputStream fos = new FileOutputStream(file);
+                    byte[] buffer = new byte[1024];
+                    int len;
+                    while ((len = inputStream.read(buffer)) > 0) {
+                        fos.write(buffer, 0, len);
+                    }
+                    fos.close();
+                    inputStream.close();
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
             try (InputStream inputStream = epubFile.getInputStream(coverEntry);
-                 BufferedInputStream bufferedInputStream = new BufferedInputStream(inputStream);
-                 ByteArrayOutputStream buffer = new ByteArrayOutputStream()) {
+            BufferedInputStream bufferedInputStream = new BufferedInputStream(inputStream);
+            ByteArrayOutputStream buffer = new ByteArrayOutputStream()) {
                 byte[] data = new byte[1024];
                 int bytesRead;
                 while ((bytesRead = bufferedInputStream.read(data, 0, data.length)) != -1) {
@@ -283,17 +313,101 @@ public class Book implements Parcelable {
             }
         }
 
-        public void parseNcx(){
+        public void parseAssets(){
+            for (Map.Entry<String, String> entry : imageMap.entrySet()) {
+                String href = entry.getValue();
 
+                String fullPath = opfDic + href;
+                ZipEntry entryZip = epubFile.getEntry(fullPath);
+                if (entryZip != null) {
+                    try {
+                        InputStream inputStream = epubFile.getInputStream(entryZip);
+                        File file = new File(AssetsPath + "/" + href);
+                        if (!file.exists()) {
+                            file.getParentFile().mkdirs();
+                            FileOutputStream fos = new FileOutputStream(file);
+                            byte[] buffer = new byte[1024];
+                            int len;
+                            while ((len = inputStream.read(buffer)) > 0) {
+                                fos.write(buffer, 0, len);
+                            }
+                            fos.close();
+                            inputStream.close();
+                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+
+            for (Map.Entry<String, String> entry : xhtmlMap.entrySet()) {
+                String href = entry.getValue();
+
+                String fullPath = opfDic + href;
+                ZipEntry entryZip = epubFile.getEntry(fullPath);
+                if (entryZip != null) {
+                    try {
+                        InputStream inputStream = epubFile.getInputStream(entryZip);
+                        File file = new File(AssetsPath + "/" + href);
+                        if (!file.exists()) {
+                            file.getParentFile().mkdirs();
+                            FileOutputStream fos = new FileOutputStream(file);
+                            byte[] buffer = new byte[1024];
+                            int len;
+                            while ((len = inputStream.read(buffer)) > 0) {
+                                fos.write(buffer, 0, len);
+                            }
+                            fos.close();
+                            inputStream.close();
+                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+
+            if (cssPath != null) {
+                String fullPath = opfDic + cssPath;
+                ZipEntry entryZip = epubFile.getEntry(fullPath);
+                if (entryZip != null) {
+                    try {
+                        InputStream inputStream = epubFile.getInputStream(entryZip);
+                        File file = new File(AssetsPath+ "/" + cssPath);
+                        if (!file.exists()) {
+                            file.getParentFile().mkdirs();
+                            FileOutputStream fos = new FileOutputStream(file);
+                            byte[] buffer = new byte[1024];
+                            int len;
+                            while ((len = inputStream.read(buffer)) > 0) {
+                                fos.write(buffer, 0, len);
+                            }
+                            fos.close();
+                            inputStream.close();
+                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+
+            File[] files = new File(AssetsPath).listFiles();
+            assert files != null;
+            for(File file:files){
+                Log.v("filename", file.getName());
+            }
+        }
+
+        public void parseNcx(){
+            //TODO
         }
 
     }
 
     public class PdfParser{
-
+        //TODO
     }
 
     public class EbeParser{
-
+        //TODO
     }
 }
