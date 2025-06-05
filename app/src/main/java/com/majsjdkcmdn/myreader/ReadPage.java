@@ -6,6 +6,8 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Bundle;
 
+import android.os.Handler;
+import android.os.Looper;
 import android.text.SpannableStringBuilder;
 import android.view.View;
 import android.widget.ImageView;
@@ -53,19 +55,15 @@ public class ReadPage extends AppCompatActivity {
         ViewPager viewPager = findViewById(R.id.book_view_zone);
         metaView = findViewById(R.id.book_read_meta_text);
 
-        backView.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent(ReadPage.this, MainPage.class);
-                startActivity(intent);
-            }
-        });
+        backView.setOnClickListener(v -> finish());
+
         titleView.setText(bookTitle);
         progressView.setText("0%");
-        ReadPageFactory factory = new ReadPageFactory(ReadingPath, ChapterList);
-
         assert ReadingPath != null;
+        ReadPageFactory factory = new ReadPageFactory(ReadingPath, ChapterList);
         int num = Objects.requireNonNull(new File(ReadingPath).listFiles()).length;
+        Toast end = Toast.makeText(ReadPage.this, "没有了", Toast.LENGTH_SHORT);
+        Toast next = Toast.makeText(ReadPage.this,"加载中",Toast.LENGTH_SHORT);
 
         try {
             final int[] Chapter = {bookPage};
@@ -73,27 +71,25 @@ public class ReadPage extends AppCompatActivity {
             temp.add(new SpannableStringBuilder(""));
             ReadPageAdapter adapter = new ReadPageAdapter(this, temp);
             viewPager.setAdapter(adapter);
-            List<SpannableStringBuilder> SpanList = factory.GetSpannableString(
-                    factory.ParseXHtml(bookPage, height,width, 24), getResources(), width, height);
-            adapter.updateData(SpanList);
+            adapter.updateData(ReadingPath,
+                    factory.ParseXHtml(bookPage, height,width, 24), viewPager.getResources());
             prePage.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
                     if(Chapter[0] == 0){
-                        Toast.makeText(ReadPage.this,"没有了",Toast.LENGTH_SHORT).show();
+                        end.show();
                     }else{
-                        Toast.makeText(ReadPage.this,"加载中",Toast.LENGTH_SHORT).show();
-                        Chapter[0]--;
-                        List<SpannableStringBuilder> prevChapter = null;
+                        next.show();
                         try {
-                            prevChapter = factory.GetSpannableString(
-                                    factory.ParseXHtml(Chapter[0], height, width,24), getResources(), width, height);
+                            Chapter[0]--;
+                            adapter.updateData(ReadingPath,
+                                    factory.ParseXHtml(Chapter[0], height, width,24), viewPager.getResources());
+                            viewPager.setAdapter(adapter);
+                            new Handler(Looper.getMainLooper()).postDelayed(next::cancel, 0);
+                            viewPager.setCurrentItem(0);
                         } catch (Exception e) {
                             throw new RuntimeException(e);
                         }
-                        adapter.updateData(prevChapter);
-                        viewPager.setAdapter(adapter);
-                        viewPager.setCurrentItem(0);
                     }
                 }
             });
@@ -101,20 +97,19 @@ public class ReadPage extends AppCompatActivity {
                 @Override
                 public void onClick(View v) {
                     if(Chapter[0]==num){
-                        Toast.makeText(ReadPage.this,"没有了",Toast.LENGTH_SHORT).show();
+                        end.show();
                     }else{
-                        Toast.makeText(ReadPage.this,"加载中",Toast.LENGTH_SHORT).show();
-                        Chapter[0]++;
-                        List<SpannableStringBuilder> nextChapter = null;
+                        next.show();
                         try {
-                            nextChapter = factory.GetSpannableString(
-                                    factory.ParseXHtml(Chapter[0], height, width,24), getResources(), width, height);
+                            Chapter[0]++;
+                            adapter.updateData(ReadingPath,
+                                    factory.ParseXHtml(Chapter[0], height, width,24), viewPager.getResources());
+                            viewPager.setAdapter(adapter);
+                            new Handler(Looper.getMainLooper()).postDelayed(next::cancel, 0);
+                            viewPager.setCurrentItem(0);
                         } catch (Exception e) {
                             throw new RuntimeException(e);
                         }
-                        adapter.updateData(nextChapter);
-                        viewPager.setAdapter(adapter);
-                        viewPager.setCurrentItem(0);
                     }
                 }
             });
@@ -131,8 +126,6 @@ public class ReadPage extends AppCompatActivity {
             });
         } catch (Exception e) {
             throw new RuntimeException(e);
-            //Intent intent = new Intent(ReadPage.this, MainPage.class);
-            //startActivity(intent);
         }
     }
 

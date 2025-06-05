@@ -44,7 +44,7 @@ public class ReadPageFactory {
     public List<List<Asset>> ParseXHtml(int position, int height, int width, int LineSpace) throws Exception {
         File htmlFile = new File(AssetPath+"/"+ChapterList.get(position));
         int lineCnt = height/LineSpace;
-        int max_char = width/24;
+        int max_char = width/23;
         int curLineCnt = 0;
         Document html = Jsoup.parse(htmlFile);
 
@@ -52,7 +52,12 @@ public class ReadPageFactory {
         List<Asset> page = new ArrayList<>();
         List<String> curText = new ArrayList<>();
 
-        Elements elements = html.select("body > div > *");
+        Elements elements;
+        if(!html.select("body>div>*").isEmpty() && html.select("body>*").size()<=5){
+            elements = html.select("body > div > *");
+        }
+        else elements = html.select("body > *");
+
 
         for (Element element : elements) {
             if (isImg(element)) {
@@ -60,10 +65,11 @@ public class ReadPageFactory {
                 if (!page.isEmpty()) {pages.add(page); page = new ArrayList<>();}
                 curLineCnt = 0;
 
-                Element img = element.select("img").first();
+                Element img = element.select("img, image").first();
                 if (img != null) {
+                    String attrName = img.tagName().equals("image") ? "xlink:href" : "src";
                     List<Asset> tmp = new ArrayList<>();
-                    tmp.add(new Asset("img", img.attr("src")));
+                    tmp.add(new Asset("img", img.attr(attrName)));
                     pages.add(tmp);
                 } continue;
             } else if(isHeading(element)){
@@ -74,7 +80,6 @@ public class ReadPageFactory {
                 String text = element.text();
                 curLineCnt += text.length()/max_char + 1;
                 if (!text.isEmpty()) curText.add(text);
-                else curText.add("\n");
             }
 
             if (curLineCnt >= lineCnt){
@@ -89,52 +94,26 @@ public class ReadPageFactory {
 
         return pages;
     }
-    public List<SpannableStringBuilder> GetSpannableString(List<List<Asset>> AssetLists, Resources resources, int width, int height) throws IOException {
-        List<SpannableStringBuilder> SpanList= new ArrayList<>();
-        for(List<Asset> AssetList:AssetLists){
-            SpannableStringBuilder builder = new SpannableStringBuilder();
-            for(Asset asset:AssetList){
-                if(asset.ClassID.matches("h[1-4]")){
-                    SpannableString tempSpan = new SpannableString(asset.content);
-                    tempSpan.setSpan(new RelativeSizeSpan(1.25F), 0, tempSpan.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                    builder.append(tempSpan);
-                }else if(asset.ClassID.equals("p")){
-                    SpannableString tempSpan = new SpannableString(asset.content);
-                    builder.append(tempSpan);
-                }else if(asset.ClassID.equals("img")){
-                    String pos = new File(ReadingPath +"/"+ asset.content).getCanonicalFile().getAbsolutePath();
-                    Bitmap bitmap = BitmapFactory.decodeFile(pos);
-                    int imgWidth = bitmap.getWidth();
-                    int imgHeight = bitmap.getHeight();
 
-                    float imgRatio = (float) imgWidth / imgHeight;
-                    float containerRatio = (float) width / height;
-
-                    float scale;
-                    if (imgRatio > containerRatio) {
-                        scale = (float) width / imgWidth;
-                    } else {
-                        scale = (float) height / imgHeight;
-                    }
-
-                    int scaledWidth = Math.round(imgWidth * scale);
-                    int scaledHeight = Math.round(imgHeight * scale);
-                    Bitmap nbitmap = Bitmap.createScaledBitmap(bitmap, scaledWidth, scaledHeight, true);
-                    Drawable drawable = new BitmapDrawable(resources, nbitmap);
-                    drawable.setBounds(0, 0, bitmap.getWidth(), bitmap.getHeight());
-                    ImageSpan imageSpan = new ImageSpan(drawable, ImageSpan.ALIGN_BOTTOM);
-                    builder.append(" ");
-                    builder.setSpan(imageSpan, 0, 1,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                }
-            }
-            SpanList.add(builder);
-        }
-        return SpanList;
-    }
 
     public static boolean isImg(Element e){
-        if (!"div".equalsIgnoreCase(e.tagName())) return false;
-        return !e.getElementsByTag("img").isEmpty();
+        String tagName = e.tagName().toLowerCase();
+        Elements children = e.children();
+
+        switch (tagName) {
+            case "img":
+            case "svg":
+            case "image":
+                return true;
+        }
+
+        if (children.isEmpty()) return false;
+
+        return children.stream()
+                .anyMatch(child ->
+                        "img".equalsIgnoreCase(child.tagName()) ||
+                                isImg(child)
+                );
     }
 
     public static boolean isHeading(Element e){

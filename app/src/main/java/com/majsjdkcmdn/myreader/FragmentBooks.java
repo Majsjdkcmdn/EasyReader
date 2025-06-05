@@ -242,6 +242,7 @@ public class FragmentBooks extends Fragment {
                     intent.putStringArrayListExtra("ChapterList", (ArrayList<String>) bookList.get(position).ChapterSeq);
                     intent.putExtra("height", screenHeight-100);
                     intent.putExtra("width", screenWidth-36);
+                    intent.putExtra("density", density);
                     startActivity(intent);
                 }
             });
